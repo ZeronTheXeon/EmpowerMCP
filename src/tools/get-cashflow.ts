@@ -3,7 +3,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { EmpowerClient, SessionExpiredError, EmpowerApiError } from "../empower/client.js";
 import type { EmpowerSession, Transaction } from "../empower/types.js";
 
-export function registerGetCashFlow(server: McpServer, getSession: () => EmpowerSession) {
+export function registerGetCashFlow(server: McpServer, getSession: () => EmpowerSession | null) {
   server.tool(
     "get_cashflow",
     "Get income vs spending breakdown by category for a date range",
@@ -14,6 +14,9 @@ export function registerGetCashFlow(server: McpServer, getSession: () => Empower
     async ({ startDate, endDate }) => {
       try {
         const session = getSession();
+        if (!session) {
+          return { content: [{ type: "text" as const, text: "Not authenticated. Please provide a valid session token in the Authorization header. Visit the root URL of this server to get your token." }], isError: true };
+        }
         const client = new EmpowerClient(session);
         const response = await client.getCashFlow(startDate, endDate);
 

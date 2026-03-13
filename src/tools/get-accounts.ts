@@ -3,7 +3,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { EmpowerClient, SessionExpiredError, EmpowerApiError } from "../empower/client.js";
 import type { EmpowerSession } from "../empower/types.js";
 
-export function registerGetAccounts(server: McpServer, getSession: () => EmpowerSession) {
+export function registerGetAccounts(server: McpServer, getSession: () => EmpowerSession | null) {
   server.tool(
     "get_accounts",
     "List all linked financial accounts including balances, account types, and institutions",
@@ -11,6 +11,9 @@ export function registerGetAccounts(server: McpServer, getSession: () => Empower
     async () => {
       try {
         const session = getSession();
+        if (!session) {
+          return { content: [{ type: "text" as const, text: "Not authenticated. Please provide a valid session token in the Authorization header. Visit the root URL of this server to get your token." }], isError: true };
+        }
         const client = new EmpowerClient(session);
         const response = await client.getAccounts();
 

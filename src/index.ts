@@ -176,22 +176,10 @@ async function handleAuth(path: string, request: Request): Promise<Response> {
  * to the MCP server via a closure.
  */
 async function handleMcp(request: Request): Promise<Response> {
-  // Extract and validate session from Authorization header
+  // Extract session from Authorization header (optional — allows unauthenticated
+  // MCP connections so clients can complete the handshake and discover tools).
   const authHeader = request.headers.get("Authorization");
-  if (!authHeader) {
-    return errorResponse(
-      "Authorization header required. Visit the root URL of this server to get your token.",
-      401
-    );
-  }
-
-  const session = decodeSession(authHeader);
-  if (!session) {
-    return errorResponse(
-      "Invalid token format. Please re-authenticate.",
-      401
-    );
-  }
+  const session = authHeader ? decodeSession(authHeader) : null;
 
   // Create a stateless transport for each request (no session ID generation)
   const transport = new WebStandardStreamableHTTPServerTransport({
@@ -199,7 +187,7 @@ async function handleMcp(request: Request): Promise<Response> {
     enableJsonResponse: true,
   });
 
-  // Create and connect the MCP server with the decoded session
+  // Create and connect the MCP server with the decoded session (may be null)
   const server = createMcpServer(() => session);
   await server.connect(transport);
 

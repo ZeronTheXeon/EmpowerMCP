@@ -3,7 +3,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { EmpowerClient, SessionExpiredError, EmpowerApiError } from "../empower/client.js";
 import type { EmpowerSession, Holding } from "../empower/types.js";
 
-export function registerGetHoldings(server: McpServer, getSession: () => EmpowerSession) {
+export function registerGetHoldings(server: McpServer, getSession: () => EmpowerSession | null) {
   server.tool(
     "get_holdings",
     "Get investment holdings breakdown including tickers, shares, values, and allocation percentages",
@@ -13,6 +13,9 @@ export function registerGetHoldings(server: McpServer, getSession: () => Empower
     async ({ accountId }) => {
       try {
         const session = getSession();
+        if (!session) {
+          return { content: [{ type: "text" as const, text: "Not authenticated. Please provide a valid session token in the Authorization header. Visit the root URL of this server to get your token." }], isError: true };
+        }
         const client = new EmpowerClient(session);
         const response = await client.getHoldings();
 

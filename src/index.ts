@@ -132,7 +132,8 @@ async function handleAuth(path: string, request: Request): Promise<Response> {
         };
         const baseUrl = resolveBaseUrl(body.siteKey as string);
         if (!csrf || !code || !cookies) {
-          return errorResponse("csrf, code, and cookies are required", 400);
+          const missing = [!csrf && "csrf", !code && "code", !cookies && "cookies"].filter(Boolean).join(", ");
+          return errorResponse(`Missing required fields: ${missing}`, 400);
         }
 
         const result = await authenticateChallenge(csrf, challengeType || "SMS", code, cookies, baseUrl);

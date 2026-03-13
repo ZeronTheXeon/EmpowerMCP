@@ -338,8 +338,8 @@ export const authPageHtml = `<!DOCTYPE html>
           cookies: state.cookies,
           siteKey: state.siteKey,
         });
-        state.csrf = data.csrf;
-        state.cookies = data.cookies;
+        if (data.csrf) state.csrf = data.csrf;
+        if (data.cookies) state.cookies = data.cookies;
         showStep('code');
       } catch (e) {
         showError(e.message);
@@ -362,8 +362,8 @@ export const authPageHtml = `<!DOCTYPE html>
           cookies: state.cookies,
           siteKey: state.siteKey,
         });
-        state.csrf = data.csrf;
-        state.cookies = data.cookies;
+        if (data.csrf) state.csrf = data.csrf;
+        if (data.cookies) state.cookies = data.cookies;
         showStep('password');
       } catch (e) {
         showError(e.message);

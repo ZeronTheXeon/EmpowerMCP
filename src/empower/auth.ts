@@ -199,7 +199,7 @@ export async function sendChallenge(
   }
 
   return {
-    csrf: data.spHeader.csrf,
+    csrf: data.spHeader.csrf || csrf,
     cookies: updatedCookies,
   };
 }
@@ -250,7 +250,7 @@ export async function authenticateChallenge(
   }
 
   return {
-    csrf: data.spHeader.csrf,
+    csrf: data.spHeader.csrf || csrf,
     authLevel: data.spHeader.authLevel,
     cookies: updatedCookies,
   };

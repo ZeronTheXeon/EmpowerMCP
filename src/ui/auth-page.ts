@@ -256,14 +256,10 @@ export const authPageHtml = `<!DOCTYPE html>
   </div>
 
   <script>
-    const SITES = {
-      CLASSIC: 'https://home.personalcapital.com',
-      EMPOWER: 'https://pc-api.empower-retirement.com',
-    };
-    let state = { csrf: '', cookies: {}, email: '', challengeType: '', baseUrl: '' };
+    let state = { csrf: '', cookies: {}, email: '', challengeType: '', siteKey: '' };
 
     function selectSite(key) {
-      state.baseUrl = SITES[key];
+      state.siteKey = key;
       showStep('email');
     }
 
@@ -313,7 +309,7 @@ export const authPageHtml = `<!DOCTYPE html>
       state.email = email;
       setLoading(btn, true);
       try {
-        const data = await api('/auth/login', { email, baseUrl: state.baseUrl });
+        const data = await api('/auth/login', { email, siteKey: state.siteKey });
         state.csrf = data.csrf;
         state.cookies = data.cookies;
 
@@ -340,7 +336,7 @@ export const authPageHtml = `<!DOCTYPE html>
           csrf: state.csrf,
           challengeType: type,
           cookies: state.cookies,
-          baseUrl: state.baseUrl,
+          siteKey: state.siteKey,
         });
         state.csrf = data.csrf;
         state.cookies = data.cookies;
@@ -364,7 +360,7 @@ export const authPageHtml = `<!DOCTYPE html>
           challengeType: state.challengeType,
           code,
           cookies: state.cookies,
-          baseUrl: state.baseUrl,
+          siteKey: state.siteKey,
         });
         state.csrf = data.csrf;
         state.cookies = data.cookies;
@@ -388,12 +384,12 @@ export const authPageHtml = `<!DOCTYPE html>
           email: state.email,
           password,
           cookies: state.cookies,
-          baseUrl: state.baseUrl,
+          siteKey: state.siteKey,
         });
         document.getElementById('token').value = data.session;
         showStep('token');
         // Clear sensitive state
-        state = { csrf: '', cookies: {}, email: '', challengeType: '', baseUrl: '' };
+        state = { csrf: '', cookies: {}, email: '', challengeType: '', siteKey: '' };
       } catch (e) {
         showError(e.message);
       } finally {

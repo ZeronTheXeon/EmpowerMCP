@@ -2,7 +2,7 @@ import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/
 import { createMcpServer } from "./mcp-server.js";
 import { decodeSession, encodeSession } from "./session.js";
 import { identifyUser, sendChallenge, authenticateChallenge, authenticatePassword } from "./empower/auth.js";
-import type { EmpowerSession } from "./empower/types.js";
+import { resolveBaseUrl } from "./empower/types.js";
 import { authPageHtml } from "./ui/auth-page.js";
 
 // CORS headers for all responses
@@ -93,7 +93,7 @@ async function handleAuth(path: string, request: Request): Promise<Response> {
     switch (path) {
       case "/auth/login": {
         const email = body.email as string;
-        const baseUrl = (body.baseUrl as string) || undefined;
+        const baseUrl = resolveBaseUrl(body.siteKey as string);
         if (!email) return errorResponse("Email is required", 400);
 
         const result = await identifyUser(email, baseUrl);
@@ -106,12 +106,12 @@ async function handleAuth(path: string, request: Request): Promise<Response> {
       }
 
       case "/auth/challenge": {
-        const { csrf, challengeType, cookies, baseUrl } = body as {
+        const { csrf, challengeType, cookies } = body as {
           csrf: string;
           challengeType: string;
           cookies: Record<string, string>;
-          baseUrl?: string;
         };
+        const baseUrl = resolveBaseUrl(body.siteKey as string);
         if (!csrf || !challengeType || !cookies) {
           return errorResponse("csrf, challengeType, and cookies are required", 400);
         }
@@ -124,13 +124,13 @@ async function handleAuth(path: string, request: Request): Promise<Response> {
       }
 
       case "/auth/verify": {
-        const { csrf, challengeType, code, cookies, baseUrl } = body as {
+        const { csrf, challengeType, code, cookies } = body as {
           csrf: string;
           challengeType: string;
           code: string;
           cookies: Record<string, string>;
-          baseUrl?: string;
         };
+        const baseUrl = resolveBaseUrl(body.siteKey as string);
         if (!csrf || !code || !cookies) {
           return errorResponse("csrf, code, and cookies are required", 400);
         }
@@ -144,13 +144,13 @@ async function handleAuth(path: string, request: Request): Promise<Response> {
       }
 
       case "/auth/password": {
-        const { csrf, email, password, cookies, baseUrl } = body as {
+        const { csrf, email, password, cookies } = body as {
           csrf: string;
           email: string;
           password: string;
           cookies: Record<string, string>;
-          baseUrl?: string;
         };
+        const baseUrl = resolveBaseUrl(body.siteKey as string);
         if (!csrf || !email || !password || !cookies) {
           return errorResponse("csrf, email, password, and cookies are required", 400);
         }

@@ -28,6 +28,24 @@ export const EMPOWER_SITES = {
 
 export type EmpowerSiteKey = keyof typeof EMPOWER_SITES;
 
+/** All valid Empower site base URLs (for runtime validation). */
+export const EMPOWER_SITE_URLS = new Set(Object.values(EMPOWER_SITES));
+
+/** Resolve a site key to its base URL. Returns CLASSIC for unknown keys. */
+export function resolveBaseUrl(siteKeyOrUrl: string | undefined): string {
+  if (!siteKeyOrUrl) return EMPOWER_SITES.CLASSIC;
+  // Accept a site key like "CLASSIC" or "EMPOWER"
+  if (siteKeyOrUrl in EMPOWER_SITES) {
+    return EMPOWER_SITES[siteKeyOrUrl as EmpowerSiteKey];
+  }
+  // Accept a known URL directly (for backward compat with existing tokens)
+  if (EMPOWER_SITE_URLS.has(siteKeyOrUrl as typeof EMPOWER_SITES[EmpowerSiteKey])) {
+    return siteKeyOrUrl;
+  }
+  // Unknown value — default to CLASSIC to prevent SSRF
+  return EMPOWER_SITES.CLASSIC;
+}
+
 // Auth flow types
 
 export interface IdentifyResponse {

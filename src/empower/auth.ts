@@ -13,7 +13,14 @@
  */
 
 import type { EmpowerSession, IdentifyResponse } from "./types.js";
-import { EMPOWER_SITES } from "./types.js";
+import { EMPOWER_SITES, EMPOWER_SITE_URLS } from "./types.js";
+
+/** Validate that a baseUrl is in the known allowlist. Throws on unknown URLs. */
+function assertAllowedBaseUrl(baseUrl: string): void {
+  if (!EMPOWER_SITE_URLS.has(baseUrl as never)) {
+    throw new Error(`Invalid base URL: ${baseUrl}`);
+  }
+}
 
 function makeHeaders(baseUrl: string): Record<string, string> {
   return {
@@ -90,6 +97,7 @@ async function getInitialCsrf(baseUrl: string): Promise<{ csrf: string; cookies:
  * POST /api/login/identifyUser
  */
 export async function identifyUser(email: string, baseUrl: string = EMPOWER_SITES.CLASSIC): Promise<IdentifyResponse> {
+  assertAllowedBaseUrl(baseUrl);
   const { csrf, cookies: initialCookies } = await getInitialCsrf(baseUrl);
   const apiBase = `${baseUrl}/api`;
   const headers = makeHeaders(baseUrl);
@@ -154,6 +162,7 @@ export async function sendChallenge(
   cookies: Record<string, string>,
   baseUrl: string = EMPOWER_SITES.CLASSIC
 ): Promise<{ csrf: string; cookies: Record<string, string> }> {
+  assertAllowedBaseUrl(baseUrl);
   const apiBase = `${baseUrl}/api`;
   const headers = makeHeaders(baseUrl);
   const endpoint = challengeType === "SMS"
@@ -206,6 +215,7 @@ export async function authenticateChallenge(
   cookies: Record<string, string>,
   baseUrl: string = EMPOWER_SITES.CLASSIC
 ): Promise<{ csrf: string; authLevel: string; cookies: Record<string, string> }> {
+  assertAllowedBaseUrl(baseUrl);
   const apiBase = `${baseUrl}/api`;
   const headers = makeHeaders(baseUrl);
   const endpoint = challengeType === "SMS"
@@ -258,6 +268,7 @@ export async function authenticatePassword(
   cookies: Record<string, string>,
   baseUrl: string = EMPOWER_SITES.CLASSIC
 ): Promise<EmpowerSession> {
+  assertAllowedBaseUrl(baseUrl);
   const apiBase = `${baseUrl}/api`;
   const headers = makeHeaders(baseUrl);
 

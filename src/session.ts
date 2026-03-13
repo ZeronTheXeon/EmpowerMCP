@@ -1,12 +1,14 @@
 import { z } from "zod";
 import type { EmpowerSession } from "./empower/types.js";
-import { EMPOWER_SITES } from "./empower/types.js";
+import { EMPOWER_SITES, EMPOWER_SITE_URLS } from "./empower/types.js";
+
+const allowedBaseUrls = [...EMPOWER_SITE_URLS] as [string, ...string[]];
 
 const SessionSchema = z.object({
   csrf: z.string().min(1),
   authLevel: z.string().min(1),
   cookies: z.record(z.string(), z.string()),
-  baseUrl: z.string().min(1),
+  baseUrl: z.enum(allowedBaseUrls),
   userGuid: z.string().optional(),
   expiresAt: z.number().optional(),
 });

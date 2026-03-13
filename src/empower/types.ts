@@ -27,16 +27,24 @@ export interface ChallengeResponse {
 
 export interface Account {
   accountId: string;
-  name: string;
+  accountName: string;
   firmName: string;
   accountType: string;
   accountTypeGroup: string;
+  productType?: string;
   balance: number;
+  isAsset: boolean;
   currency?: string;
-  lastUpdated?: string;
+  lastRefreshed?: string;
   isOnUs?: boolean;
   closedDate?: string;
   isActive: boolean;
+  creditLimit?: number;
+  availableCredit?: number;
+  minPayment?: number;
+  paymentDueDate?: string;
+  interestRate?: number;
+  originalLoanAmount?: number;
 }
 
 export interface AccountsResponse {
@@ -131,6 +139,7 @@ export interface Holding {
   percentOfAccount?: number;
   price?: number;
   holdingType?: string;
+  assetClass?: string;
   source?: string;
 }
 

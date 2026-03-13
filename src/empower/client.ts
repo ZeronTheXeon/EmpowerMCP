@@ -41,6 +41,7 @@ export class EmpowerClient {
   private async apiPost(endpoint: string, params: Record<string, string> = {}): Promise<EmpowerApiResponse> {
     const body = new URLSearchParams({
       ...params,
+      lastServerChangeId: "-1",
       csrf: this.session.csrf,
       apiClient: "WEB",
     });
@@ -91,6 +92,11 @@ export class EmpowerClient {
     const response = await this.apiPost("/transaction/getUserTransactions", {
       startDate,
       endDate,
+      sort_cols: "transactionTime",
+      sort_rev: "true",
+      page: "0",
+      rows_per_page: "500",
+      component: "DATAGRID",
     });
     return response as unknown as TransactionsResponse;
   }

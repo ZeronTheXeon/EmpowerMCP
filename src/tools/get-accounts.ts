@@ -40,14 +40,14 @@ export function registerGetAccounts(server: McpServer, getSession: () => Empower
           for (const acct of accts) {
             const balance = acct.balance ?? 0;
             const balanceStr = balance.toLocaleString("en-US", { style: "currency", currency: "USD" });
-            output += `- **${acct.name}** (${acct.firmName || "Unknown"}): ${balanceStr}`;
-            if (acct.lastUpdated) {
-              output += ` — updated ${acct.lastUpdated}`;
+            output += `- **${acct.accountName}** (${acct.firmName || "Unknown"}): ${balanceStr}`;
+            if (acct.lastRefreshed) {
+              output += ` — updated ${acct.lastRefreshed}`;
             }
             output += "\n";
 
-            if (balance >= 0) {
-              totalAssets += balance;
+            if (acct.isAsset) {
+              totalAssets += Math.abs(balance);
             } else {
               totalLiabilities += Math.abs(balance);
             }

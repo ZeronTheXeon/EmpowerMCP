@@ -66,8 +66,11 @@ async function getInitialCsrf(): Promise<{ csrf: string; cookies: Record<string,
   const cookies = extractCookies(response);
   const body = await response.text();
 
-  // Extract CSRF token from page HTML: globals.csrf='<token>'
-  const csrfMatch = body.match(/globals\.csrf='([a-f0-9-]+)'/);
+  // Extract CSRF token from page HTML
+  // Newer Empower uses: window.csrf = '<token>'
+  // Older versions used: globals.csrf='<token>'
+  const csrfMatch = body.match(/window\.csrf\s*=\s*'([a-f0-9-]+)'/) ||
+                     body.match(/globals\.csrf='([a-f0-9-]+)'/);
   if (!csrfMatch) {
     throw new Error("Failed to extract initial CSRF token from Empower");
   }
@@ -88,6 +91,7 @@ export async function identifyUser(email: string): Promise<IdentifyResponse> {
     apiClient: "WEB",
     bindDevice: "false",
     skipLinkAccount: "false",
+    skipFirstUse: "",
     redirectTo: "",
     referrerId: "",
   });
@@ -144,11 +148,14 @@ export async function sendChallenge(
     ? "/credential/challengeSms"
     : "/credential/challengeEmail";
 
+  const challengeTypeParam = challengeType === "SMS" ? "challengeSMS" : "challengeEmail";
+
   const body = new URLSearchParams({
     csrf,
     apiClient: "WEB",
     challengeReason: "DEVICE_AUTH",
     challengeMethod: "OP",
+    challengeType: challengeTypeParam,
     bindDevice: "false",
   });
 
@@ -240,8 +247,10 @@ export async function authenticatePassword(
     apiClient: "WEB",
     username: email,
     passwd: password,
-    bindDevice: "false",
+    bindDevice: "true",
+    deviceName: "",
     skipLinkAccount: "false",
+    skipFirstUse: "",
     redirectTo: "",
     referrerId: "",
   });

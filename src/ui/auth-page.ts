@@ -193,8 +193,20 @@ export const authPageHtml = `<!DOCTYPE html>
     <div class="card">
       <div id="error" class="error"></div>
 
+      <!-- Step 0: Site Selection -->
+      <div id="step-site" class="step active">
+        <label>Which Empower site is your account on?</label>
+        <div class="challenge-options" style="margin-top: 0.5rem;">
+          <button class="btn-secondary" onclick="selectSite('EMPOWER')">Empower (New)</button>
+          <button class="btn-secondary" onclick="selectSite('CLASSIC')">Personal Capital</button>
+        </div>
+        <div style="font-size: 0.78rem; color: #8b949e; margin-top: 0.25rem;">
+          If you've been migrated to empower.com, choose "Empower (New)".
+        </div>
+      </div>
+
       <!-- Step 1: Email -->
-      <div id="step-email" class="step active">
+      <div id="step-email" class="step">
         <label for="email">Email Address</label>
         <input type="email" id="email" placeholder="you@example.com" autocomplete="email">
         <button class="btn-primary" onclick="submitEmail()">Continue</button>
@@ -244,7 +256,16 @@ export const authPageHtml = `<!DOCTYPE html>
   </div>
 
   <script>
-    let state = { csrf: '', cookies: {}, email: '', challengeType: '' };
+    const SITES = {
+      CLASSIC: 'https://home.personalcapital.com',
+      EMPOWER: 'https://pc-api.empower-retirement.com',
+    };
+    let state = { csrf: '', cookies: {}, email: '', challengeType: '', baseUrl: '' };
+
+    function selectSite(key) {
+      state.baseUrl = SITES[key];
+      showStep('email');
+    }
 
     function showStep(id) {
       document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
@@ -292,7 +313,7 @@ export const authPageHtml = `<!DOCTYPE html>
       state.email = email;
       setLoading(btn, true);
       try {
-        const data = await api('/auth/login', { email });
+        const data = await api('/auth/login', { email, baseUrl: state.baseUrl });
         state.csrf = data.csrf;
         state.cookies = data.cookies;
 
@@ -319,6 +340,7 @@ export const authPageHtml = `<!DOCTYPE html>
           csrf: state.csrf,
           challengeType: type,
           cookies: state.cookies,
+          baseUrl: state.baseUrl,
         });
         state.csrf = data.csrf;
         state.cookies = data.cookies;
@@ -342,6 +364,7 @@ export const authPageHtml = `<!DOCTYPE html>
           challengeType: state.challengeType,
           code,
           cookies: state.cookies,
+          baseUrl: state.baseUrl,
         });
         state.csrf = data.csrf;
         state.cookies = data.cookies;
@@ -365,11 +388,12 @@ export const authPageHtml = `<!DOCTYPE html>
           email: state.email,
           password,
           cookies: state.cookies,
+          baseUrl: state.baseUrl,
         });
         document.getElementById('token').value = data.session;
         showStep('token');
         // Clear sensitive state
-        state = { csrf: '', cookies: {}, email: '', challengeType: '' };
+        state = { csrf: '', cookies: {}, email: '', challengeType: '', baseUrl: '' };
       } catch (e) {
         showError(e.message);
       } finally {

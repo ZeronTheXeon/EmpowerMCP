@@ -18,9 +18,7 @@ import type {
   EmpowerApiResponse,
 } from "./types.js";
 import { sessionToHeaders } from "../session.js";
-
-const BASE_URL = "https://home.personalcapital.com";
-const API_BASE = `${BASE_URL}/api`;
+import { EMPOWER_SITES } from "./types.js";
 
 export class SessionExpiredError extends Error {
   constructor(message = "Your Empower session has expired. Please re-authenticate to get a new token.") {
@@ -39,10 +37,13 @@ export class EmpowerApiError extends Error {
 export class EmpowerClient {
   private session: EmpowerSession;
   private headers: Record<string, string>;
+  private apiBase: string;
 
   constructor(session: EmpowerSession) {
     this.session = session;
     this.headers = sessionToHeaders(session);
+    const baseUrl = session.baseUrl || EMPOWER_SITES.CLASSIC;
+    this.apiBase = `${baseUrl}/api`;
   }
 
   /**
@@ -57,7 +58,7 @@ export class EmpowerClient {
       apiClient: "WEB",
     });
 
-    const response = await fetch(`${API_BASE}${endpoint}`, {
+    const response = await fetch(`${this.apiBase}${endpoint}`, {
       method: "POST",
       headers: this.headers,
       body: body.toString(),

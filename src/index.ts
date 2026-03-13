@@ -93,9 +93,10 @@ async function handleAuth(path: string, request: Request): Promise<Response> {
     switch (path) {
       case "/auth/login": {
         const email = body.email as string;
+        const baseUrl = (body.baseUrl as string) || undefined;
         if (!email) return errorResponse("Email is required", 400);
 
-        const result = await identifyUser(email);
+        const result = await identifyUser(email, baseUrl);
         return jsonResponse({
           challengeMethods: result.challengeMethods,
           csrf: result.csrf,
@@ -105,16 +106,17 @@ async function handleAuth(path: string, request: Request): Promise<Response> {
       }
 
       case "/auth/challenge": {
-        const { csrf, challengeType, cookies } = body as {
+        const { csrf, challengeType, cookies, baseUrl } = body as {
           csrf: string;
           challengeType: string;
           cookies: Record<string, string>;
+          baseUrl?: string;
         };
         if (!csrf || !challengeType || !cookies) {
           return errorResponse("csrf, challengeType, and cookies are required", 400);
         }
 
-        const result = await sendChallenge(csrf, challengeType, cookies);
+        const result = await sendChallenge(csrf, challengeType, cookies, baseUrl);
         return jsonResponse({
           csrf: result.csrf,
           cookies: result.cookies,
@@ -122,17 +124,18 @@ async function handleAuth(path: string, request: Request): Promise<Response> {
       }
 
       case "/auth/verify": {
-        const { csrf, challengeType, code, cookies } = body as {
+        const { csrf, challengeType, code, cookies, baseUrl } = body as {
           csrf: string;
           challengeType: string;
           code: string;
           cookies: Record<string, string>;
+          baseUrl?: string;
         };
         if (!csrf || !code || !cookies) {
           return errorResponse("csrf, code, and cookies are required", 400);
         }
 
-        const result = await authenticateChallenge(csrf, challengeType || "SMS", code, cookies);
+        const result = await authenticateChallenge(csrf, challengeType || "SMS", code, cookies, baseUrl);
         return jsonResponse({
           csrf: result.csrf,
           authLevel: result.authLevel,
@@ -141,17 +144,18 @@ async function handleAuth(path: string, request: Request): Promise<Response> {
       }
 
       case "/auth/password": {
-        const { csrf, email, password, cookies } = body as {
+        const { csrf, email, password, cookies, baseUrl } = body as {
           csrf: string;
           email: string;
           password: string;
           cookies: Record<string, string>;
+          baseUrl?: string;
         };
         if (!csrf || !email || !password || !cookies) {
           return errorResponse("csrf, email, password, and cookies are required", 400);
         }
 
-        const session = await authenticatePassword(csrf, email, password, cookies);
+        const session = await authenticatePassword(csrf, email, password, cookies, baseUrl);
         const token = encodeSession(session);
         return jsonResponse({ session: token });
       }

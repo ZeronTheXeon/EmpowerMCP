@@ -13,9 +13,20 @@ export interface EmpowerSession {
   csrf: string;
   authLevel: string;
   cookies: Record<string, string>;
+  baseUrl: string;
   userGuid?: string;
   expiresAt?: number;
 }
+
+/** Known Empower site base URLs */
+export const EMPOWER_SITES = {
+  /** Original Personal Capital site (non-migrated users) */
+  CLASSIC: "https://home.personalcapital.com",
+  /** New Empower site (migrated users) */
+  EMPOWER: "https://pc-api.empower-retirement.com",
+} as const;
+
+export type EmpowerSiteKey = keyof typeof EMPOWER_SITES;
 
 // Auth flow types
 

@@ -176,6 +176,15 @@ async function handleAuth(path: string, request: Request): Promise<Response> {
  * to the MCP server via a closure.
  */
 async function handleMcp(request: Request): Promise<Response> {
+  // Only POST is supported for stateless Streamable HTTP (no SSE streaming).
+  // GET (SSE) and DELETE (session termination) are not applicable.
+  if (request.method === "GET") {
+    return corsResponse(null, { status: 405, headers: { "Allow": "POST" } });
+  }
+  if (request.method === "DELETE") {
+    return corsResponse(null, { status: 405, headers: { "Allow": "POST" } });
+  }
+
   // Extract session from Authorization header (optional — allows unauthenticated
   // MCP connections so clients can complete the handshake and discover tools).
   const authHeader = request.headers.get("Authorization");

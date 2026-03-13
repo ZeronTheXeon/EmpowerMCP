@@ -2,7 +2,7 @@ import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/
 import { createMcpServer } from "./mcp-server.js";
 import { decodeSession, encodeSession } from "./session.js";
 import { identifyUser, sendChallenge, authenticateChallenge, authenticatePassword } from "./empower/auth.js";
-import type { EmpowerSession } from "./empower/types.js";
+import { resolveBaseUrl } from "./empower/types.js";
 import { authPageHtml } from "./ui/auth-page.js";
 
 // CORS headers for all responses
@@ -93,9 +93,10 @@ async function handleAuth(path: string, request: Request): Promise<Response> {
     switch (path) {
       case "/auth/login": {
         const email = body.email as string;
+        const baseUrl = resolveBaseUrl(body.siteKey as string);
         if (!email) return errorResponse("Email is required", 400);
 
-        const result = await identifyUser(email);
+        const result = await identifyUser(email, baseUrl);
         return jsonResponse({
           challengeMethods: result.challengeMethods,
           csrf: result.csrf,
@@ -110,11 +111,12 @@ async function handleAuth(path: string, request: Request): Promise<Response> {
           challengeType: string;
           cookies: Record<string, string>;
         };
+        const baseUrl = resolveBaseUrl(body.siteKey as string);
         if (!csrf || !challengeType || !cookies) {
           return errorResponse("csrf, challengeType, and cookies are required", 400);
         }
 
-        const result = await sendChallenge(csrf, challengeType, cookies);
+        const result = await sendChallenge(csrf, challengeType, cookies, baseUrl);
         return jsonResponse({
           csrf: result.csrf,
           cookies: result.cookies,
@@ -128,11 +130,13 @@ async function handleAuth(path: string, request: Request): Promise<Response> {
           code: string;
           cookies: Record<string, string>;
         };
+        const baseUrl = resolveBaseUrl(body.siteKey as string);
         if (!csrf || !code || !cookies) {
-          return errorResponse("csrf, code, and cookies are required", 400);
+          const missing = [!csrf && "csrf", !code && "code", !cookies && "cookies"].filter(Boolean).join(", ");
+          return errorResponse(`Missing required fields: ${missing}`, 400);
         }
 
-        const result = await authenticateChallenge(csrf, challengeType || "SMS", code, cookies);
+        const result = await authenticateChallenge(csrf, challengeType || "SMS", code, cookies, baseUrl);
         return jsonResponse({
           csrf: result.csrf,
           authLevel: result.authLevel,
@@ -147,11 +151,12 @@ async function handleAuth(path: string, request: Request): Promise<Response> {
           password: string;
           cookies: Record<string, string>;
         };
+        const baseUrl = resolveBaseUrl(body.siteKey as string);
         if (!csrf || !email || !password || !cookies) {
           return errorResponse("csrf, email, password, and cookies are required", 400);
         }
 
-        const session = await authenticatePassword(csrf, email, password, cookies);
+        const session = await authenticatePassword(csrf, email, password, cookies, baseUrl);
         const token = encodeSession(session);
         return jsonResponse({ session: token });
       }

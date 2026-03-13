@@ -13,17 +13,24 @@
  */
 
 import type { EmpowerSession, IdentifyResponse } from "./types.js";
+import { EMPOWER_SITES, EMPOWER_SITE_URLS } from "./types.js";
 
-const BASE_URL = "https://home.personalcapital.com";
-const API_BASE = `${BASE_URL}/api`;
+/** Validate that a baseUrl is in the known allowlist. Throws on unknown URLs. */
+function assertAllowedBaseUrl(baseUrl: string): void {
+  if (!EMPOWER_SITE_URLS.has(baseUrl as never)) {
+    throw new Error(`Invalid base URL: ${baseUrl}`);
+  }
+}
 
-const DEFAULT_HEADERS: Record<string, string> = {
-  "Content-Type": "application/x-www-form-urlencoded",
-  "Accept": "application/json",
-  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-  "Origin": "https://home.personalcapital.com",
-  "Referer": "https://home.personalcapital.com/",
-};
+function makeHeaders(baseUrl: string): Record<string, string> {
+  return {
+    "Content-Type": "application/x-www-form-urlencoded",
+    "Accept": "application/json",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+    "Origin": baseUrl,
+    "Referer": `${baseUrl}/`,
+  };
+}
 
 /**
  * Extract cookies from Set-Cookie headers in a fetch response.
@@ -61,10 +68,11 @@ function buildCookieHeader(cookies: Record<string, string>): string {
 /**
  * Get initial CSRF token by loading the home page.
  */
-async function getInitialCsrf(): Promise<{ csrf: string; cookies: Record<string, string> }> {
-  const response = await fetch(`${BASE_URL}/page/login/goHome`, {
+async function getInitialCsrf(baseUrl: string): Promise<{ csrf: string; cookies: Record<string, string> }> {
+  const headers = makeHeaders(baseUrl);
+  const response = await fetch(`${baseUrl}/page/login/goHome`, {
     headers: {
-      "User-Agent": DEFAULT_HEADERS["User-Agent"],
+      "User-Agent": headers["User-Agent"],
     },
     redirect: "manual",
   });
@@ -88,8 +96,11 @@ async function getInitialCsrf(): Promise<{ csrf: string; cookies: Record<string,
  * Step 1: Identify user by email.
  * POST /api/login/identifyUser
  */
-export async function identifyUser(email: string): Promise<IdentifyResponse> {
-  const { csrf, cookies: initialCookies } = await getInitialCsrf();
+export async function identifyUser(email: string, baseUrl: string = EMPOWER_SITES.CLASSIC): Promise<IdentifyResponse> {
+  assertAllowedBaseUrl(baseUrl);
+  const { csrf, cookies: initialCookies } = await getInitialCsrf(baseUrl);
+  const apiBase = `${baseUrl}/api`;
+  const headers = makeHeaders(baseUrl);
 
   const body = new URLSearchParams({
     username: email,
@@ -102,10 +113,10 @@ export async function identifyUser(email: string): Promise<IdentifyResponse> {
     referrerId: "",
   });
 
-  const response = await fetch(`${API_BASE}/login/identifyUser`, {
+  const response = await fetch(`${apiBase}/login/identifyUser`, {
     method: "POST",
     headers: {
-      ...DEFAULT_HEADERS,
+      ...headers,
       "Cookie": buildCookieHeader(initialCookies),
     },
     body: body.toString(),
@@ -148,8 +159,12 @@ export async function identifyUser(email: string): Promise<IdentifyResponse> {
 export async function sendChallenge(
   csrf: string,
   challengeType: string,
-  cookies: Record<string, string>
+  cookies: Record<string, string>,
+  baseUrl: string = EMPOWER_SITES.CLASSIC
 ): Promise<{ csrf: string; cookies: Record<string, string> }> {
+  assertAllowedBaseUrl(baseUrl);
+  const apiBase = `${baseUrl}/api`;
+  const headers = makeHeaders(baseUrl);
   const endpoint = challengeType === "SMS"
     ? "/credential/challengeSms"
     : "/credential/challengeEmail";
@@ -165,10 +180,10 @@ export async function sendChallenge(
     bindDevice: "false",
   });
 
-  const response = await fetch(`${API_BASE}${endpoint}`, {
+  const response = await fetch(`${apiBase}${endpoint}`, {
     method: "POST",
     headers: {
-      ...DEFAULT_HEADERS,
+      ...headers,
       "Cookie": buildCookieHeader(cookies),
     },
     body: body.toString(),
@@ -184,7 +199,7 @@ export async function sendChallenge(
   }
 
   return {
-    csrf: data.spHeader.csrf,
+    csrf: data.spHeader.csrf || csrf,
     cookies: updatedCookies,
   };
 }
@@ -197,8 +212,12 @@ export async function authenticateChallenge(
   csrf: string,
   challengeType: string,
   code: string,
-  cookies: Record<string, string>
+  cookies: Record<string, string>,
+  baseUrl: string = EMPOWER_SITES.CLASSIC
 ): Promise<{ csrf: string; authLevel: string; cookies: Record<string, string> }> {
+  assertAllowedBaseUrl(baseUrl);
+  const apiBase = `${baseUrl}/api`;
+  const headers = makeHeaders(baseUrl);
   const endpoint = challengeType === "SMS"
     ? "/credential/authenticateSms"
     : "/credential/authenticateEmailByCode";
@@ -212,10 +231,10 @@ export async function authenticateChallenge(
     bindDevice: "false",
   });
 
-  const response = await fetch(`${API_BASE}${endpoint}`, {
+  const response = await fetch(`${apiBase}${endpoint}`, {
     method: "POST",
     headers: {
-      ...DEFAULT_HEADERS,
+      ...headers,
       "Cookie": buildCookieHeader(cookies),
     },
     body: body.toString(),
@@ -231,7 +250,7 @@ export async function authenticateChallenge(
   }
 
   return {
-    csrf: data.spHeader.csrf,
+    csrf: data.spHeader.csrf || csrf,
     authLevel: data.spHeader.authLevel,
     cookies: updatedCookies,
   };
@@ -246,8 +265,13 @@ export async function authenticatePassword(
   csrf: string,
   email: string,
   password: string,
-  cookies: Record<string, string>
+  cookies: Record<string, string>,
+  baseUrl: string = EMPOWER_SITES.CLASSIC
 ): Promise<EmpowerSession> {
+  assertAllowedBaseUrl(baseUrl);
+  const apiBase = `${baseUrl}/api`;
+  const headers = makeHeaders(baseUrl);
+
   const body = new URLSearchParams({
     csrf,
     apiClient: "WEB",
@@ -261,10 +285,10 @@ export async function authenticatePassword(
     referrerId: "",
   });
 
-  const response = await fetch(`${API_BASE}/credential/authenticatePassword`, {
+  const response = await fetch(`${apiBase}/credential/authenticatePassword`, {
     method: "POST",
     headers: {
-      ...DEFAULT_HEADERS,
+      ...headers,
       "Cookie": buildCookieHeader(cookies),
     },
     body: body.toString(),
@@ -283,6 +307,7 @@ export async function authenticatePassword(
     csrf: data.spHeader.csrf,
     authLevel: data.spHeader.authLevel,
     cookies: updatedCookies,
+    baseUrl,
     userGuid: data.spHeader.userGuid,
   };
 }

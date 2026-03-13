@@ -1,0 +1,7 @@
+name = "empower-mcp"
+main = "src/index.ts"
+compatibility_date = "2026-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Fully stateless — NO Durable Objects, NO KV, NO persistent storage
+# BYOT (Bring Your Own Token) — no server-side credentials

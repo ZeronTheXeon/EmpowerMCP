@@ -3,7 +3,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { EmpowerClient, SessionExpiredError, EmpowerApiError } from "../empower/client.js";
 import type { EmpowerSession } from "../empower/types.js";
 
-export function registerGetNetWorth(server: McpServer, getSession: () => EmpowerSession) {
+export function registerGetNetWorth(server: McpServer, getSession: () => EmpowerSession | null) {
   server.tool(
     "get_networth",
     "Get net worth history over a date range, showing assets, liabilities, and net worth over time",
@@ -15,6 +15,9 @@ export function registerGetNetWorth(server: McpServer, getSession: () => Empower
     async ({ startDate, endDate, interval }) => {
       try {
         const session = getSession();
+        if (!session) {
+          return { content: [{ type: "text" as const, text: "Not authenticated. Please provide a valid session token in the Authorization header. Visit the root URL of this server to get your token." }], isError: true };
+        }
         const client = new EmpowerClient(session);
         const response = await client.getNetWorth(startDate, endDate, interval ?? "MONTHLY");
 

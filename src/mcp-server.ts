@@ -10,7 +10,7 @@ import { registerGetHoldings } from "./tools/get-holdings.js";
  * Create and configure the MCP server with all 5 financial tools.
  * The session getter is called lazily by each tool when it handles a request.
  */
-export function createMcpServer(getSession: () => EmpowerSession): McpServer {
+export function createMcpServer(getSession: () => EmpowerSession | null): McpServer {
   const server = new McpServer({
     name: "empower-financial",
     version: "1.0.0",

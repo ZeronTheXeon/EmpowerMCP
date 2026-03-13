@@ -3,7 +3,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { EmpowerClient, SessionExpiredError, EmpowerApiError } from "../empower/client.js";
 import type { EmpowerSession, Transaction } from "../empower/types.js";
 
-export function registerGetTransactions(server: McpServer, getSession: () => EmpowerSession) {
+export function registerGetTransactions(server: McpServer, getSession: () => EmpowerSession | null) {
   server.tool(
     "get_transactions",
     "Get transactions for a date range, optionally filtered by account or category",
@@ -16,6 +16,9 @@ export function registerGetTransactions(server: McpServer, getSession: () => Emp
     async ({ startDate, endDate, accountId, category }) => {
       try {
         const session = getSession();
+        if (!session) {
+          return { content: [{ type: "text" as const, text: "Not authenticated. Please provide a valid session token in the Authorization header. Visit the root URL of this server to get your token." }], isError: true };
+        }
         const client = new EmpowerClient(session);
         const response = await client.getTransactions(startDate, endDate);
 

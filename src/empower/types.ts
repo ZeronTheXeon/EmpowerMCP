@@ -1,4 +1,13 @@
-/** TypeScript types for Empower (Personal Capital) API responses */
+/**
+ * TypeScript types for Empower (Personal Capital) API responses.
+ *
+ * Response structures based on:
+ * - https://github.com/haochi/personalcapital (MIT License)
+ * - https://github.com/ChocoTonic/personalcapital-py (MIT License)
+ * - https://github.com/PaulNorton/personal-capital-connector-mcp
+ *
+ * See THIRD-PARTY-NOTICES.md for full license texts.
+ */
 
 export interface EmpowerSession {
   csrf: string;

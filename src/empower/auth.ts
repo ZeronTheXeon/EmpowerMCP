@@ -1,6 +1,12 @@
 /**
  * Auth flow proxy helpers for the companion web UI.
  *
+ * Authentication flow (endpoints, parameters, CSRF handling) derived from:
+ * - https://github.com/haochi/personalcapital (MIT License)
+ * - https://github.com/ChocoTonic/personalcapital-py (MIT License)
+ *
+ * See THIRD-PARTY-NOTICES.md for full license texts.
+ *
  * SECURITY NOTE: This module proxies credentials (email, password, 2FA codes)
  * directly to Empower's API. Credentials are NEVER logged, stored, or cached
  * on the Worker. They pass through in-memory only for the duration of the request.

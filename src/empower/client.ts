@@ -1,3 +1,14 @@
+/**
+ * Empower (Personal Capital) API wrapper.
+ *
+ * API endpoints and request parameters derived from:
+ * - https://github.com/haochi/personalcapital (MIT License)
+ * - https://github.com/ChocoTonic/personalcapital-py (MIT License)
+ * - https://github.com/PaulNorton/personal-capital-connector-mcp
+ *
+ * See THIRD-PARTY-NOTICES.md for full license texts.
+ */
+
 import type {
   EmpowerSession,
   AccountsResponse,

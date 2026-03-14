@@ -50,34 +50,51 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
 
-    // Handle CORS preflight
-    if (request.method === "OPTIONS") {
-      return corsResponse(null, { status: 204 });
-    }
+    console.log(`[${request.method}] ${path}`, {
+      accept: request.headers.get("Accept"),
+      contentType: request.headers.get("Content-Type"),
+      protocolVersion: request.headers.get("MCP-Protocol-Version"),
+      hasAuth: !!request.headers.get("Authorization"),
+      origin: request.headers.get("Origin"),
+    });
 
-    // Route: GET / — Serve companion auth web UI
-    if (path === "/" && request.method === "GET") {
-      return new Response(authPageHtml, {
-        headers: {
-          "Content-Type": "text/html; charset=utf-8",
-          ...CORS_HEADERS,
-        },
-      });
+    try {
+      return await routeRequest(request, path);
+    } catch (error) {
+      console.error("Unhandled error:", error);
+      return errorResponse("Internal server error", 500);
     }
-
-    // Route: POST /auth/* — Auth flow proxy endpoints
-    if (path.startsWith("/auth/")) {
-      return handleAuth(path, request);
-    }
-
-    // Route: /mcp — MCP Streamable HTTP endpoint
-    if (path === "/mcp") {
-      return handleMcp(request);
-    }
-
-    return errorResponse("Not found", 404);
   },
 };
+
+async function routeRequest(request: Request, path: string): Promise<Response> {
+  // Handle CORS preflight
+  if (request.method === "OPTIONS") {
+    return corsResponse(null, { status: 204 });
+  }
+
+  // Route: GET / — Serve companion auth web UI
+  if (path === "/" && request.method === "GET") {
+    return new Response(authPageHtml, {
+      headers: {
+        "Content-Type": "text/html; charset=utf-8",
+        ...CORS_HEADERS,
+      },
+    });
+  }
+
+  // Route: POST /auth/* — Auth flow proxy endpoints
+  if (path.startsWith("/auth/")) {
+    return handleAuth(path, request);
+  }
+
+  // Route: /mcp — MCP Streamable HTTP endpoint
+  if (path === "/mcp") {
+    return handleMcp(request);
+  }
+
+  return errorResponse("Not found", 404);
+}
 
 /**
  * Handle auth proxy endpoints for the companion web UI.
@@ -200,10 +217,18 @@ async function handleMcp(request: Request): Promise<Response> {
   const server = createMcpServer(() => session);
   await server.connect(transport);
 
+  transport.onerror = (error) => {
+    console.error("[MCP transport error]", error);
+  };
+
   try {
     // Let the transport handle the request
     const response = await transport.handleRequest(request);
+    console.log(`[MCP response] status=${response.status}`);
     return addCorsHeaders(response);
+  } catch (error) {
+    console.error("[MCP handleRequest error]", error);
+    return errorResponse("MCP request failed", 500);
   } finally {
     // Clean up the transport after handling
     await transport.close();

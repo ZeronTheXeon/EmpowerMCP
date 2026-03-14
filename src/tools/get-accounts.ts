@@ -2,17 +2,20 @@ import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { EmpowerClient, SessionExpiredError, EmpowerApiError } from "../empower/client.js";
 import type { EmpowerSession } from "../empower/types.js";
+import { resolveSession } from "../session.js";
 
 export function registerGetAccounts(server: McpServer, getSession: () => EmpowerSession | null) {
   server.tool(
     "get_accounts",
     "List all linked financial accounts including balances, account types, and institutions",
-    {},
-    async () => {
+    {
+      token: z.string().optional().describe("Empower session token (base64-encoded). If omitted, the Authorization header is used."),
+    },
+    async ({ token }) => {
       try {
-        const session = getSession();
+        const session = resolveSession(token, getSession);
         if (!session) {
-          return { content: [{ type: "text" as const, text: "Not authenticated. Please provide a valid session token in the Authorization header. Visit the root URL of this server to get your token." }], isError: true };
+          return { content: [{ type: "text" as const, text: "Not authenticated. Please provide a valid session token via the 'token' parameter or the Authorization header. Visit the root URL of this server to get your token." }], isError: true };
         }
         const client = new EmpowerClient(session);
         const response = await client.getAccounts();

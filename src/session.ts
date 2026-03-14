@@ -61,6 +61,43 @@ export function sessionToHeaders(session: EmpowerSession): Record<string, string
 }
 
 /**
+ * Decode a raw base64-encoded session token (without the "Bearer " prefix).
+ */
+export function decodeToken(token: string): EmpowerSession | null {
+  try {
+    const json = atob(token);
+    const parsed = JSON.parse(json);
+
+    if (!parsed.baseUrl) {
+      parsed.baseUrl = EMPOWER_SITES.CLASSIC;
+    }
+
+    const result = SessionSchema.safeParse(parsed);
+    if (!result.success) return null;
+    return result.data as EmpowerSession;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Resolve a session from a tool-provided token parameter, falling back to the
+ * header-based session getter. The token parameter takes precedence so that
+ * callers can provide a fresh token on every tool call without relying on
+ * stateful header-based auth.
+ */
+export function resolveSession(
+  token: string | undefined,
+  getSession: () => EmpowerSession | null,
+): EmpowerSession | null {
+  if (token) {
+    // Try as raw base64 first, then as "Bearer <token>"
+    return decodeToken(token) ?? decodeSession(`Bearer ${token}`) ?? getSession();
+  }
+  return getSession();
+}
+
+/**
  * Encode a session object to a base64 token string.
  */
 export function encodeSession(session: EmpowerSession): string {

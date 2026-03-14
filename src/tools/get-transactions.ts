@@ -2,22 +2,24 @@ import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { EmpowerClient, SessionExpiredError, EmpowerApiError } from "../empower/client.js";
 import type { EmpowerSession, Transaction } from "../empower/types.js";
+import { resolveSession } from "../session.js";
 
 export function registerGetTransactions(server: McpServer, getSession: () => EmpowerSession | null) {
   server.tool(
     "get_transactions",
     "Get transactions for a date range, optionally filtered by account or category",
     {
+      token: z.string().optional().describe("Empower session token (base64-encoded). If omitted, the Authorization header is used."),
       startDate: z.string().describe("Start date in YYYY-MM-DD format"),
       endDate: z.string().describe("End date in YYYY-MM-DD format"),
       accountId: z.string().optional().describe("Filter to a specific account ID"),
       category: z.string().optional().describe("Filter by transaction category name"),
     },
-    async ({ startDate, endDate, accountId, category }) => {
+    async ({ token, startDate, endDate, accountId, category }) => {
       try {
-        const session = getSession();
+        const session = resolveSession(token, getSession);
         if (!session) {
-          return { content: [{ type: "text" as const, text: "Not authenticated. Please provide a valid session token in the Authorization header. Visit the root URL of this server to get your token." }], isError: true };
+          return { content: [{ type: "text" as const, text: "Not authenticated. Please provide a valid session token via the 'token' parameter or the Authorization header. Visit the root URL of this server to get your token." }], isError: true };
         }
         const client = new EmpowerClient(session);
         const response = await client.getTransactions(startDate, endDate);

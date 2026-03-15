@@ -16,9 +16,10 @@ import type {
   NetWorthResponse,
   HoldingsResponse,
   EmpowerApiResponse,
+  SiteConfig,
 } from "./types.js";
 import { sessionToHeaders } from "../session.js";
-import { EMPOWER_SITES, EMPOWER_SITE_URLS } from "./types.js";
+import { EMPOWER_SITES, EMPOWER_SITE_URLS, getSiteConfig } from "./types.js";
 
 export class SessionExpiredError extends Error {
   constructor(message = "Your Empower session has expired. Please re-authenticate to get a new token.") {
@@ -38,6 +39,7 @@ export class EmpowerClient {
   private session: EmpowerSession;
   private headers: Record<string, string>;
   private apiBase: string;
+  private siteConfig: SiteConfig;
 
   constructor(session: EmpowerSession) {
     this.session = session;
@@ -47,24 +49,51 @@ export class EmpowerClient {
       throw new Error(`Invalid base URL in session: ${baseUrl}`);
     }
     this.apiBase = `${baseUrl}/api`;
+    this.siteConfig = getSiteConfig(baseUrl);
+  }
+
+  /**
+   * Resolve an endpoint path, applying any site-specific overrides.
+   */
+  private resolveEndpoint(endpoint: string): string {
+    return this.siteConfig.endpointOverrides[endpoint] ?? endpoint;
   }
 
   /**
    * Make an authenticated POST request to the Empower API.
-   * All Empower data endpoints use POST with form-encoded body.
+   * Uses multipart/form-data for the new Empower site, URL-encoded for classic.
    */
   private async apiPost(endpoint: string, params: Record<string, string> = {}): Promise<EmpowerApiResponse> {
-    const body = new URLSearchParams({
-      ...params,
-      lastServerChangeId: "-1",
-      csrf: this.session.csrf,
-      apiClient: "WEB",
-    });
+    const resolvedEndpoint = this.resolveEndpoint(endpoint);
+    const headers = { ...this.headers };
 
-    const response = await fetch(`${this.apiBase}${endpoint}`, {
+    let body: FormData | string;
+    if (this.siteConfig.useMultipartFormData) {
+      const formData = new FormData();
+      formData.append("csrf", this.session.csrf);
+      formData.append("apiClient", "WEB");
+      formData.append("lastServerChangeId", "-1");
+      for (const [k, v] of Object.entries(params)) {
+        formData.append(k, v);
+      }
+      body = formData;
+      // Do NOT set Content-Type — fetch auto-sets it with the multipart boundary
+    } else {
+      body = new URLSearchParams({
+        ...params,
+        lastServerChangeId: "-1",
+        csrf: this.session.csrf,
+        apiClient: "WEB",
+      }).toString();
+      headers["Content-Type"] = "application/x-www-form-urlencoded";
+    }
+
+    const url = `${this.apiBase}${resolvedEndpoint}`;
+
+    const response = await fetch(url, {
       method: "POST",
-      headers: this.headers,
-      body: body.toString(),
+      headers,
+      body,
       redirect: "manual",
     });
 
@@ -148,5 +177,30 @@ export class EmpowerClient {
   async getHoldings(): Promise<HoldingsResponse> {
     const response = await this.apiPost("/invest/getHoldings");
     return response as unknown as HoldingsResponse;
+  }
+
+  /**
+   * Get spending summary with weekly/monthly/yearly intervals and budget targets.
+   * Endpoint: /account/getUserSpending
+   */
+  async getUserSpending(startDate: string, endDate: string): Promise<EmpowerApiResponse> {
+    return this.apiPost("/account/getUserSpending", {
+      startDate,
+      endDate,
+      intervalType: "MONTH",
+    });
+  }
+
+  /**
+   * Get per-account performance summaries (income, expenses, balance changes).
+   * Endpoint: /account/getHistories with types=["accountSummaries"]
+   */
+  async getAccountPerformance(startDate: string, endDate: string): Promise<EmpowerApiResponse> {
+    return this.apiPost("/account/getHistories", {
+      startDate,
+      endDate,
+      interval: "MONTH",
+      types: JSON.stringify(["accountSummaries"]),
+    });
   }
 }

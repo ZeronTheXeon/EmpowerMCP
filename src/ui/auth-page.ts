@@ -228,11 +228,20 @@ export const authPageHtml = `<!DOCTYPE html>
         <button class="btn-primary" onclick="submitCode()">Verify</button>
       </div>
 
-      <!-- Step 4: Password -->
+      <!-- Step 4: Password (classic flow) -->
       <div id="step-password" class="step">
         <label for="password">Password</label>
         <input type="password" id="password" placeholder="Enter your Empower password" autocomplete="current-password">
         <button class="btn-primary" onclick="submitPassword()">Sign In</button>
+      </div>
+
+      <!-- Step: Combined auth for new Empower site -->
+      <div id="step-combined" class="step">
+        <label for="empower-email">Email Address</label>
+        <input type="email" id="empower-email" placeholder="you@example.com" autocomplete="email">
+        <label for="empower-password">Password</label>
+        <input type="password" id="empower-password" placeholder="Enter your Empower password" autocomplete="current-password">
+        <button class="btn-primary" onclick="submitCombined()">Sign In</button>
       </div>
 
       <!-- Step 5: Token Display -->
@@ -397,6 +406,30 @@ export const authPageHtml = `<!DOCTYPE html>
       }
     }
 
+    async function submitCombined() {
+      const btn = document.querySelector('#step-combined button');
+      const email = document.getElementById('empower-email').value.trim();
+      const password = document.getElementById('empower-password').value;
+      if (!email) return showError('Please enter your email address.');
+      if (!password) return showError('Please enter your password.');
+
+      setLoading(btn, true);
+      try {
+        const data = await api('/auth/authenticate-empower', {
+          email,
+          password,
+          siteKey: state.siteKey,
+        });
+        document.getElementById('token').value = data.session;
+        showStep('token');
+        state = { csrf: '', cookies: {}, email: '', challengeType: '', siteKey: '' };
+      } catch (e) {
+        showError(e.message);
+      } finally {
+        setLoading(btn, false);
+      }
+    }
+
     async function copyToken() {
       const token = document.getElementById('token').value;
       await navigator.clipboard.writeText(token);
@@ -409,6 +442,8 @@ export const authPageHtml = `<!DOCTYPE html>
     document.getElementById('email').addEventListener('keydown', e => { if (e.key === 'Enter') submitEmail(); });
     document.getElementById('code').addEventListener('keydown', e => { if (e.key === 'Enter') submitCode(); });
     document.getElementById('password').addEventListener('keydown', e => { if (e.key === 'Enter') submitPassword(); });
+    document.getElementById('empower-email').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('empower-password').focus(); });
+    document.getElementById('empower-password').addEventListener('keydown', e => { if (e.key === 'Enter') submitCombined(); });
   </script>
 </body>
 </html>`;

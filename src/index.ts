@@ -2,6 +2,7 @@ import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/
 import { createMcpServer } from "./mcp-server.js";
 import { decodeSession, encodeSession } from "./session.js";
 import { identifyUser, sendChallenge, authenticateChallenge, authenticatePassword } from "./empower/auth.js";
+import { authenticateNewEmpower } from "./empower/auth-empower.js";
 import { resolveBaseUrl } from "./empower/types.js";
 import { authPageHtml } from "./ui/auth-page.js";
 
@@ -174,6 +175,18 @@ async function handleAuth(path: string, request: Request): Promise<Response> {
         }
 
         const session = await authenticatePassword(csrf, email, password, cookies, baseUrl);
+        const token = encodeSession(session);
+        return jsonResponse({ session: token });
+      }
+
+      case "/auth/authenticate-empower": {
+        const { email, password } = body as { email: string; password: string };
+        const baseUrl = resolveBaseUrl(body.siteKey as string);
+        if (!email || !password) {
+          return errorResponse("email and password are required", 400);
+        }
+
+        const session = await authenticateNewEmpower(email, password, baseUrl);
         const token = encodeSession(session);
         return jsonResponse({ session: token });
       }

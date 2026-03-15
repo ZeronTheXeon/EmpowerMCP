@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { EmpowerSession } from "./empower/types.js";
-import { EMPOWER_SITES, EMPOWER_SITE_URLS } from "./empower/types.js";
+import { EMPOWER_SITES, EMPOWER_SITE_URLS, getSiteConfig } from "./empower/types.js";
 
 const allowedBaseUrls = [...EMPOWER_SITE_URLS] as [string, ...string[]];
 
@@ -9,6 +9,7 @@ const SessionSchema = z.object({
   authLevel: z.string().min(1),
   cookies: z.record(z.string(), z.string()),
   baseUrl: z.enum(allowedBaseUrls),
+  siteKey: z.string().optional(),
   userGuid: z.string().optional(),
   expiresAt: z.number().optional(),
 });
@@ -41,6 +42,8 @@ export function decodeSession(authHeader: string): EmpowerSession | null {
 
 /**
  * Convert a session to headers needed for Empower API calls.
+ * Note: Content-Type is NOT included — the caller sets it based on whether
+ * the request uses URL-encoded or multipart/form-data.
  */
 export function sessionToHeaders(session: EmpowerSession): Record<string, string> {
   const cookieString = Object.entries(session.cookies)
@@ -48,15 +51,14 @@ export function sessionToHeaders(session: EmpowerSession): Record<string, string
     .join("; ");
 
   const baseUrl = session.baseUrl || EMPOWER_SITES.CLASSIC;
+  const siteConfig = getSiteConfig(baseUrl);
 
   return {
     "Cookie": cookieString,
-    "csrf": session.csrf,
-    "Content-Type": "application/x-www-form-urlencoded",
     "Accept": "application/json",
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-    "Origin": baseUrl,
-    "Referer": `${baseUrl}/`,
+    "Origin": siteConfig.participantUrl,
+    "Referer": `${siteConfig.participantUrl}/`,
   };
 }
 

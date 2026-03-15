@@ -28,10 +28,13 @@ export function registerGetAccounts(server: McpServer, getSession: () => Empower
           };
         }
 
-        // Group accounts by type
+        // Group accounts by type, filtering out closed accounts.
+        // The new Empower API uses closedDate (empty string = active) instead of isActive.
         const grouped: Record<string, typeof accounts> = {};
         for (const acct of accounts) {
-          if (!acct.isActive) continue;
+          const isClosed = acct.closedDate && acct.closedDate !== "";
+          const isActive = "isActive" in acct ? acct.isActive : !isClosed;
+          if (!isActive) continue;
           const group = acct.accountTypeGroup || acct.accountType || "Other";
           if (!grouped[group]) grouped[group] = [];
           grouped[group].push(acct);
@@ -46,9 +49,14 @@ export function registerGetAccounts(server: McpServer, getSession: () => Empower
           for (const acct of accts) {
             const balance = acct.balance ?? 0;
             const balanceStr = balance.toLocaleString("en-US", { style: "currency", currency: "USD" });
-            output += `- **${acct.accountName}** (${acct.firmName || "Unknown"}): ${balanceStr}`;
+            // New Empower API uses `name` instead of `accountName`
+            const displayName = acct.accountName || acct.name || acct.originalName || "Unknown";
+            output += `- **${displayName}** (${acct.firmName || "Unknown"}): ${balanceStr}`;
             if (acct.lastRefreshed) {
-              output += ` — updated ${acct.lastRefreshed}`;
+              const refreshDate = typeof acct.lastRefreshed === "number"
+                ? new Date(acct.lastRefreshed).toLocaleDateString()
+                : acct.lastRefreshed;
+              output += ` — updated ${refreshDate}`;
             }
             output += "\n";
 

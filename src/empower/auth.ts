@@ -258,6 +258,8 @@ export async function authenticateChallenge(
 
 /**
  * Step 4: Authenticate with password.
+ * Falls back to the incoming csrf if the response does not include one
+ * (observed on the new Empower site).
  * POST /api/credential/authenticatePassword
  * Returns a fully authenticated session.
  */
@@ -304,7 +306,9 @@ export async function authenticatePassword(
   }
 
   return {
-    csrf: data.spHeader.csrf,
+    // Fall back to the csrf from the earlier auth step if the response
+    // doesn't include one (happens on the new Empower site).
+    csrf: data.spHeader.csrf || csrf,
     authLevel: data.spHeader.authLevel,
     cookies: updatedCookies,
     baseUrl,

@@ -5,6 +5,10 @@ import { registerGetTransactions } from "./tools/get-transactions.js";
 import { registerGetNetWorth } from "./tools/get-networth.js";
 import { registerGetCashFlow } from "./tools/get-cashflow.js";
 import { registerGetHoldings } from "./tools/get-holdings.js";
+import { registerGetSpending } from "./tools/get-spending.js";
+import { registerGetAccountPerformance } from "./tools/get-account-performance.js";
+import { registerGetInvestmentAllocation } from "./tools/get-investment-allocation.js";
+import { registerGetTopMerchants } from "./tools/get-top-merchants.js";
 
 /**
  * Create and configure the MCP server with all 5 financial tools.
@@ -21,6 +25,10 @@ export function createMcpServer(getSession: () => EmpowerSession | null): McpSer
   registerGetNetWorth(server, getSession);
   registerGetCashFlow(server, getSession);
   registerGetHoldings(server, getSession);
+  registerGetSpending(server, getSession);
+  registerGetAccountPerformance(server, getSession);
+  registerGetInvestmentAllocation(server, getSession);
+  registerGetTopMerchants(server, getSession);
 
   return server;
 }

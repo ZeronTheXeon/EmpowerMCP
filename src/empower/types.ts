@@ -14,6 +14,7 @@ export interface EmpowerSession {
   authLevel: string;
   cookies: Record<string, string>;
   baseUrl: string;
+  siteKey?: EmpowerSiteKey;
   userGuid?: string;
   expiresAt?: number;
 }
@@ -30,6 +31,36 @@ export type EmpowerSiteKey = keyof typeof EMPOWER_SITES;
 
 /** All valid Empower site base URLs (for runtime validation). */
 export const EMPOWER_SITE_URLS = new Set(Object.values(EMPOWER_SITES));
+
+/** Per-site configuration for auth and API differences. */
+export interface SiteConfig {
+  baseUrl: string;
+  /** Origin/Referer URL (differs from baseUrl on new Empower site) */
+  participantUrl: string;
+  /** Whether API calls use multipart/form-data instead of URL-encoded */
+  useMultipartFormData: boolean;
+  /** Endpoint path overrides (classic path → new path) */
+  endpointOverrides: Record<string, string>;
+}
+
+export const SITE_CONFIGS: Record<string, SiteConfig> = {
+  [EMPOWER_SITES.CLASSIC]: {
+    baseUrl: EMPOWER_SITES.CLASSIC,
+    participantUrl: EMPOWER_SITES.CLASSIC,
+    useMultipartFormData: false,
+    endpointOverrides: {},
+  },
+  [EMPOWER_SITES.EMPOWER]: {
+    baseUrl: EMPOWER_SITES.EMPOWER,
+    participantUrl: "https://participant.empower-retirement.com",
+    useMultipartFormData: true,
+    endpointOverrides: {},
+  },
+};
+
+export function getSiteConfig(baseUrl: string): SiteConfig {
+  return SITE_CONFIGS[baseUrl] ?? SITE_CONFIGS[EMPOWER_SITES.CLASSIC];
+}
 
 /** Resolve a site key to its base URL. Returns CLASSIC for unknown keys. */
 export function resolveBaseUrl(siteKeyOrUrl: string | undefined): string {
@@ -66,17 +97,24 @@ export interface ChallengeResponse {
 export interface Account {
   accountId: string;
   accountName: string;
+  /** New Empower API uses `name` instead of `accountName` */
+  name?: string;
+  originalName?: string;
   firmName: string;
   accountType: string;
   accountTypeGroup: string;
   productType?: string;
   balance: number;
+  currentBalance?: number;
   isAsset: boolean;
+  isLiability?: boolean;
   currency?: string;
-  lastRefreshed?: string;
+  lastRefreshed?: string | number;
   isOnUs?: boolean;
+  /** Empty string = active on new Empower site (no isActive field) */
   closedDate?: string;
-  isActive: boolean;
+  /** Classic site only — not present on new Empower API */
+  isActive?: boolean;
   creditLimit?: number;
   availableCredit?: number;
   minPayment?: number;
